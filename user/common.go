@@ -1,5 +1,6 @@
 package user
 import (
+	"fmt"
 	"../grain"
 )
 const (
@@ -34,28 +35,30 @@ func (self *MJRule) Init(){
 	self.Rule[IntToByte([]int{4})] = -100
 	self.Rule[IntToByte([]int{3})] = 0
 	self.Rule[IntToByte([]int{2})] = 1
-	self.Rule[IntToByte([]int{1})] = 2
+	self.Rule[IntToByte([]int{1})] = 3
 
 //	self.Rule[IntToByte([]int{4,4})] = 0
 //	self.Rule[IntToByte([]int{3,4})] = 0
 
-//	self.Rule[IntToByte([]int{2,4})] = 1
-//	self.Rule[IntToByte([]int{1,4})] = 2
+	self.Rule[IntToByte([]int{2,4})] = -100
+	self.Rule[IntToByte([]int{1,4})] = -100
 
 //	self.Rule[IntToByte([]int{4,3})] = 0
 //	self.Rule[IntToByte([]int{3,3})] = 0
-	self.Rule[IntToByte([]int{2,3})] = 1
-	self.Rule[IntToByte([]int{1,3})] = 2
+
+	self.Rule[IntToByte([]int{2,3})] = 2
+	self.Rule[IntToByte([]int{1,3})] = 3
 
 //	self.Rule[IntToByte([]int{4,2})] = 1
 //	self.Rule[IntToByte([]int{3,2})] = 1
-	self.Rule[IntToByte([]int{2,2})] = 3
-	self.Rule[IntToByte([]int{1,2})] = 3
+
+	self.Rule[IntToByte([]int{2,2})] = 2
+	self.Rule[IntToByte([]int{1,2})] = 4
 
 //	self.Rule[IntToByte([]int{4,1})] = 2
 //	self.Rule[IntToByte([]int{3,1})] = 2
-	self.Rule[IntToByte([]int{2,1})] = 3
-	self.Rule[IntToByte([]int{1,1})] = 3
+	self.Rule[IntToByte([]int{2,1})] = 4
+	self.Rule[IntToByte([]int{1,1})] = 2
 
 }
 
@@ -75,15 +78,25 @@ func  (self *MJRule) SplitStop(bit []byte,bitn []byte,in []*SplitInfo) []*SplitI
 	if le==0 {
 		return in
 	}
-	k := self.Rule[string(bit[0:1])]
+	k := self.Rule[string(bit[:1])]
 	if k == 0 {
+//		in = append(in,&SplitInfo{bit[:1],bitn[:1],0})
 		return self.SplitStop(bit[1:],bitn[1:],in)
 	}
+//	if k == 1 {
+//		return self.SplitStop(bit[1:],bitn[1:],append(in,&SplitInfo{bit[:1],bitn[:1],k}))
+//	}
 	if le<3 {
 	//	return append(in,self.Rule[string(bit)])
-		return append(in,&SplitInfo{bit,bitn,self.Rule[string(bit)]})
+		k = self.Rule[string(bit)]
+		if k < 3 {
+			return append(in,&SplitInfo{bit,bitn[:1],k})
+		}else{
+			return append(in,&SplitInfo{bit,bitn,k})
+		}
 	}
 
+	in = append(in,&SplitInfo{bit[:3],bitn[:3],0})
 	var newb []byte
 	var newbn []byte
 	for _i,b := range bit[:3] {
@@ -139,12 +152,14 @@ func  (self *MJRule) SplitOut(bit []byte) int {
 	if le==0 {
 		return 0
 	}
-	k := self.Rule[string(bit[0:1])]
+
+	k := self.Rule[string(bit[:1])]
+//	fmt.Println(bit,k)
 	if k == 0 {
 		return self.SplitOut(bit[1:])
 	}
 	if le<3 {
-		return self.Rule[string(bit)]
+		return  self.Rule[string(bit)]
 	}
 
 	k =0
@@ -179,6 +194,14 @@ type UserPublic struct {
 	Down [4][grain.Ho][grain.No]byte
 	See [4][grain.Ho][grain.No]byte
 }
+func (self *UserPublic) Check2(gr *grain.MJGrain) {
+	for _,d := range self.Down {
+		gr.O -= int(d[gr.H][gr.N])
+	}
+	for _,s := range self.See {
+		gr.O -= int(s[gr.H][gr.N])
+	}
+}
 func (self *UserPublic) Check1(gr *grain.MJGrain) {
 	gr.O = 0
 	for _,d := range self.Down {
@@ -200,11 +223,10 @@ type AnalyInfo struct {
 //	Cov float64
 	n []byte
 }
-
-func (self *AnalyInfo)Check(r *MJRule) (ko int){
+func (self *AnalyInfo)CheckExt(r *MJRule) (ko int){
 
 	ko = 0
-	for _,bit := range self.blockBit {
+	for i,bit := range self.blockBit {
 	//	bit := self.blockBit[i]
 //		var k1,k2 int
 		k1:=r.SplitOut(bit)
@@ -222,10 +244,73 @@ func (self *AnalyInfo)Check(r *MJRule) (ko int){
 			}
 		}
 //		fmt.Println("check",k1,k2)
+		k:=0
 		if k1 > k2 {
-			ko+= k2
+			k = k2
+			if k == 1 {
+				in := r.SplitStop(reversalByte(bit),reversalByte(self.block[i]),nil)
+				if len(in)>0{
+					for _,_n := range in {
+				//		fmt.Println(_n)
+						if _n.Val == 1 && len(_n.Mapkey) == 2 {
+							k = 2
+							break
+						}
+					}
+				//	fmt.Println(k)
+				}
+			}
 		}else{
-			ko+=k1
+			k = k1
+			if k == 1 {
+				in := r.SplitStop(bit,self.block[i],nil)
+				if len(in)>0{
+					for _,_n := range in {
+					//	fmt.Println(_n)
+						if _n.Val == 1 && len(_n.Mapkey) == 2 {
+							k = 2
+							break
+						}
+					}
+				//	fmt.Println(k)
+				}
+			}
+		}
+		ko+=k
+//		if ko >1 {
+//			return ko
+//		}
+	}
+	return ko
+}
+
+func (self *AnalyInfo)Check(r *MJRule) (ko int){
+
+	ko = 0
+	for _,bit := range self.blockBit {
+	//	bit := self.blockBit[i]
+//		var k1,k2 int
+		k1:=r.SplitOut(bit)
+		k2:=r.SplitOut(reversalByte(bit))
+		if k1 == 0 || k2 == 0 {
+			if k1<0 || k2 <0 {
+				continue
+			}
+		}else{
+			if k1 < 0 {
+				fmt.Println(bit)
+				return k1
+			}
+			if k2 < 0 {
+				fmt.Println(reversalByte(bit))
+				return k2
+			}
+		}
+//		fmt.Println("check",k1,k2)
+		if k1 > k2 {
+			ko += k2
+		}else{
+			ko += k1
 		}
 //		if ko >1 {
 //			return ko
@@ -283,6 +368,18 @@ func SortAnaList(as []*AnalyInfo,n int){
 	if as[n].num >as[_n].num {
 		as[n],as[_n] = as[_n],as[n]
 		SortAnaList(as,_n)
+	}
+
+}
+func SortdGrain(as []*grain.MJGrain,n int){
+
+	if n==0 {
+		return
+	}
+	_n := n-1
+	if as[n].O < as[_n].O {
+		as[n],as[_n] = as[_n],as[n]
+		SortdGrain(as,_n)
 	}
 
 }

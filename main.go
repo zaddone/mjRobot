@@ -1,10 +1,11 @@
 package main
 import (
-	"fmt"
+	//"fmt"
 	"./user"
 	"./grain"
 	"os"
 	"math/rand"
+	"time"
 )
 var (
 	ML *grain.MJList
@@ -36,13 +37,14 @@ func InitUserAll () {
 		Users[i].Init(ML,Rule,Public,i)
 		ML.Count = begin
 	}
-	Users[rand.Intn(4)].Self = true
+	ra := rand.New(rand.NewSource(time.Now().Unix()))
+	Users[ra.Intn(4)].Self = true
 
 }
 func NumAdd(i int) (j int) {
 	j = i + 1
 	if j == 4 {
-		return 0
+		j =  0
 	}
 	if Users[j].Over {
 		j = NumAdd(j)
@@ -62,12 +64,12 @@ func Quan(gr *grain.MJGrain,b,I int) int {
 //		DeskTop.See[b][gr.H][gr.N] ++
 		I = NumAdd(I)
 		if Users[I].In() {
-			fmt.Println("self",b)
+	//		fmt.Println("self",b)
 			return Quan(nil,I,I)
 		}
 		g := Users[I].Outs()
 		if g ==nil {
-			fmt.Println("self",b)
+	//		fmt.Println("self",b)
 			return Quan(nil,I,I)
 		}
 		return Quan(g,I,NumAdd(I))
@@ -76,7 +78,7 @@ func Quan(gr *grain.MJGrain,b,I int) int {
 //	var cmd string
 //	fmt.Scanf("%s",&cmd)
 	if g == nil {
-		fmt.Println(b,I)
+//		fmt.Println(b,I)
 		return Quan(gr,b,NumAdd(I))
 	}
 //	DeskTop.See[b][gr.H][gr.N] ++
