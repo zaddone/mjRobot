@@ -9,8 +9,8 @@ type MJUser struct {
 
 	Now [grain.Ho][grain.No]byte
 	Public *UserPublic
-	Down [grain.Ho][grain.No]byte
-	See [grain.Ho][grain.No]byte
+//	Down [grain.Ho][grain.No]byte
+//	See [grain.Ho][grain.No]byte
 	Discard int
 	ML *grain.MJList
 	Over bool

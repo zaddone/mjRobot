@@ -339,7 +339,7 @@ func analyze (n [grain.No]byte) (ana *AnalyInfo)  {
 			continue
 		}
 		ana.num += int(_n)
-		ana.sum += i
+		ana.sum ++
 
 		tmpNum ++
 		var bit byte
