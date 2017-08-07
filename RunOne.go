@@ -39,7 +39,7 @@ func DataHandle(data string) []byte {
 	if err != nil {
 		panic(err)
 	}
-	u := GetAIUser(str[0],(nc==5 || nc == 6))
+	u := GetAIUser(str[0],(nid <90 &&(nc==5 || nc == 6)))
 	if u.LastForData[0] == data {
 		return []byte(u.LastForData[1])
 	}
@@ -137,13 +137,16 @@ func DataHandle(data string) []byte {
 			n :=u.SeeOut(u.LastSee,(nowVal - u.NowVal )/u.BaseVal)
 			sends = fmt.Sprintf("%d %d",nid,n)
 		}else if nc == 8 {
-			n :=u.Outs((nowVal - u.NowVal)/u.BaseVal)
-			u.Public.See[u.Uid][n/9][n%9] ++
-			Test[3][n/9][n%9]++
+			n :=u.Outs((nowVal - u.NowVal)/u.BaseVal,true)
+			if n >= 0 && n <27  {
+				u.Public.See[u.Uid][n/9][n%9] ++
+			}
+//			Test[3][n/9][n%9]++
 			sends = fmt.Sprintf("%d %d",nid,n)
 
 		}else if nc == 9 {
-			n := u.SeeSelf((nowVal - u.NowVal)/u.BaseVal)
+			n :=u.Outs((nowVal - u.NowVal)/u.BaseVal,false)
+//			n := u.SeeSelf((nowVal - u.NowVal)/u.BaseVal)
 		//	g :=u.CheckGang()
 		//	u.Public.Down[u.Uid][g.H][g.N]+=u.Now[g.H][g.N]
 			sends = fmt.Sprintf("%d %d",nc,n)

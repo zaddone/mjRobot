@@ -103,7 +103,7 @@ func (self Robot) SeeSelf(isf int) int {
 			}
 		}
 	}
-	return self.Outs(isf)
+	return self.Outs(isf,false)
 }
 func (self Robot) SeeOut(v int,isf int) int {
 
@@ -200,7 +200,7 @@ func (self Robot) SeeOut(v int,isf int) int {
 //		cs.SortCovNum(lc)
 //	}
 //}
-func (self *Robot) Outs(isf int) int {
+func (self *Robot) Outs(isf int,No30 bool) int {
 	cs:= &Covs{Ro:self}
 	for _i,no := range self.Now {
 		if _i == self.Inv {
@@ -210,21 +210,38 @@ func (self *Robot) Outs(isf int) int {
 					return self.Inv*9+j
 				}
 			}
-		}else {
-			c := &Bl{I:_i}
-			c.Init(no[0:])
-			for _,n := range self.Public.Down[self.Uid][_i]{
-				if n != 0 {
-					if n == 4 {
+		}
+	}
+	if No30 {
+		isF := self.CheckFull(true)
+		if isF>0 { //&& isF + isf >= 0 {
+			fmt.Println("full 33")
+			return 33
+		}
+	}
+	for _i,no := range self.Now {
+		c := &Bl{I:_i}
+		c.Init(no[0:])
+		for _j,n := range self.Public.Down[self.Uid][_i]{
+			if n > 0 {
+				if No30{
+					if self.Now[_i][_j] >0 {
+						fmt.Println(self.Public.Down[self.Uid][_i])
 						return 32
 					}
-					c.num+=n
+				}
+				c.num+=n
+			}
+			if No30{
+				if self.Now[_i][_j] == 4 {
+					return 32
 				}
 			}
-			lc := len(cs.blocks)
-			cs.blocks = append(cs.blocks,c)
-			cs.SortCovNum(lc)
 		}
+		lc := len(cs.blocks)
+		cs.blocks = append(cs.blocks,c)
+		cs.SortCovNum(lc)
+		
 	}
 	if isf < 0 {
 		if cs.blocks[0].num < 3 {
@@ -441,7 +458,7 @@ func (self *Robot) OutDiscard(num int) (o []int) {
 	k := num - len(o)
 	if k >0 {
 		for i:=0;i<k;i++{
-			out :=self.Outs(-1)
+			out :=self.Outs(-1,false)
 			o= append(o,out)
 			self.Now[out/9][out%9]--
 		}
