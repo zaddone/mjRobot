@@ -18,6 +18,22 @@ type Robot struct {
 	NowU [3]int
 	BaseVal int
 }
+func (self *Robot) SetPublicSee(n int,nid int,val int){
+	self.Public.See[n][nid/9][nid%9] += val
+}
+
+func (self *Robot) SetPublicDown(n int,nid int,val int){
+	self.Public.Down[n][nid/9][nid%9] = val
+}
+func (self *Robot) SetNowVal(n int){
+	self.NowVal = n
+}
+func (self *Robot) GetLastForData() [2]string {
+	return self.LastForData
+}
+func (self *Robot) SetLastForData(n int,s string){
+	self.LastForData[n] = s
+}
 func (self *Robot) Init(p *UserPublic,u int){
 	self.Uid = u
 	self.Public = p
@@ -201,47 +217,64 @@ func (self Robot) SeeOut(v int,isf int) int {
 //	}
 //}
 func (self *Robot) Outs(isf int,No30 bool) int {
+
 	cs:= &Covs{Ro:self}
+	InvOut := -1
+	gangval := -1
+	gangOut := 0
 	for _i,no := range self.Now {
 		if _i == self.Inv {
 			for j,n := range no {
 				if n != 0 {
 					fmt.Println("out -1")
-					return self.Inv*9+j
+					InvOut =  self.Inv*9+j
+					break
+				}
+			}
+		}else{
+			for j,n := range no {
+				if n == 0 {
+					continue
+				}
+				if self.Public.Down[self.Uid][_i][j]>0 {
+					if n >1 {
+						self.Public.Down[self.Uid][_i][j] = 0
+					}else{
+						gangval = _i *9 + j
+						gangOut = 1
+					}
+				}
+				if n == 4 {
+					gangval = _i *9 + j
+					gangOut = 4
 				}
 			}
 		}
 	}
+
 	if No30 {
-		isF := self.CheckFull(true)
-		if isF>0 { //&& isF + isf >= 0 {
-			fmt.Println("full 33")
-			return 33
+		if InvOut == -1 {
+			isF := self.CheckFull(true)
+			if isF>0 { //&& isF + isf >= 0 {
+				fmt.Println("full 33")
+				return 33
+			}
 		}
+		if gangOut >0 {
+			self.Public.Down[self.Uid][gangval/9][gangval%9] += gangOut
+			return 32
+		}
+	}
+	if InvOut > -1 {
+		self.Public.See[self.Uid][InvOut/9][InvOut%9] ++
+		return InvOut
 	}
 	for _i,no := range self.Now {
 		c := &Bl{I:_i}
 		c.Init(no[0:])
-		for _j,n := range self.Public.Down[self.Uid][_i]{
-			if n > 0 {
-				if No30{
-					if self.Now[_i][_j] >0 {
-						fmt.Println(self.Public.Down[self.Uid][_i])
-						return 32
-					}
-				}
-				c.num+=n
-			}
-			if No30{
-				if self.Now[_i][_j] == 4 {
-					return 32
-				}
-			}
-		}
 		lc := len(cs.blocks)
 		cs.blocks = append(cs.blocks,c)
 		cs.SortCovNum(lc)
-		
 	}
 	if isf < 0 {
 		if cs.blocks[0].num < 3 {
@@ -250,6 +283,7 @@ func (self *Robot) Outs(isf int,No30 bool) int {
 					continue
 				}
 				fmt.Println("out 1")
+				self.Public.See[self.Uid][cs.blocks[0].I][_j] ++
 				return cs.blocks[0].I*9+_j
 			}
 		}
@@ -282,6 +316,7 @@ func (self *Robot) Outs(isf int,No30 bool) int {
 		if TL >0 {
 			fmt.Println("out 0")
 			if TL == 1 {
+				self.Public.See[self.Uid][gsTing[0].H][gsTing[0].N] ++
 				return gsTing[0].H*9+gsTing[0].N
 			}
 			var IT int
@@ -329,6 +364,7 @@ func (self *Robot) Outs(isf int,No30 bool) int {
 				if self.Now[g.H][g.N] > 2 {
 					continue
 				}
+				self.Public.See[self.Uid][g.H][g.N] ++
 				return g.H*9 +g.N
 			}
 		}
@@ -336,6 +372,7 @@ func (self *Robot) Outs(isf int,No30 bool) int {
 	g :=cs.SameOuts(isf)
 	if g != nil{
 		fmt.Println("out 3")
+		self.Public.See[self.Uid][g.H][g.N] ++
 		return g.H*9 + g.N
 	}
 	var dangs [3][]*MJGrain
@@ -358,6 +395,7 @@ func (self *Robot) Outs(isf int,No30 bool) int {
 	for _,das := range dangs {
 		for _,d:= range das {
 			fmt.Println("out 2")
+			self.Public.See[self.Uid][d.H][d.N] ++
 			return d.H*9+d.N
 		}
 	}
@@ -495,6 +533,7 @@ func (self Robot) IsTing(isF int,isMax bool) ( gs []*MJGrain,sum int) {
 	return gs,sum
 }
 func GetWeightVal(ns []int,tmpIs []int) int {
+
 //	rn1 := make([]int,len(ns))
 //	copy(rn1,ns)
 	_w1:= AddWeight(ns,tmpIs,0)
@@ -593,9 +632,9 @@ func (self Robot) CheckFull(Max bool) int {
 		if qing == 1 {
 			f*=4
 		}
-		if Max {
-			f*=2
-		}
+//		if Max {
+//			f*=2
+//		}
 		if self.Public != nil {
 		for i,no := range self.Public.Down[self.Uid] {
 			for j,n := range no {

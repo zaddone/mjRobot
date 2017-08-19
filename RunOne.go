@@ -15,6 +15,18 @@ var (
 	AIUser map[string]*robot.Robot
 	Test [4][3][9]int
 )
+type Robot interface{
+	Outs(isf int,No30 bool) int
+	OutDiscard(num int) (o []int)
+	GetDiscard(isNeed bool) int
+	SeeOut(v int,isf int) int
+	SetLastForData(n int,s string)
+	GetLastForData() [2]string
+	SetNowVal(n int)
+	SetValid(n int)
+	SetPublicDown(n int,nid int,val int)
+	SetPublicSee(n int,nid int,val int)
+}
 func GetAIUser(key string,isUpdate bool) (u *robot.Robot) {
 	u = AIUser[key]
 
@@ -40,19 +52,20 @@ func DataHandle(data string) []byte {
 		panic(err)
 	}
 	u := GetAIUser(str[0],(nid <90 &&(nc==5 || nc == 6)))
-	if u.LastForData[0] == data {
-		return []byte(u.LastForData[1])
+	la := u.GetLastForData()
+	if la[0] == data {
+		return []byte(la[1])
 	}
 	fmt.Println(data)
-	u.LastForData[0] = data
-	u.LastForData[1] = string([]byte{1})
+	u.SetLastForData(0,data)
+	u.SetLastForData(1,string([]byte{1}))
 	if nid < 3 {
 		if nc >0 {
 			if nc == 1 {
-				fmt.Println("fc->",nid,nc)
-				if u.NowU[nid] >=0 {
-					u.NowU[nid] = - (u.NowU[nid]+1)
-				}
+		//		fmt.Println("fc->",nid,nc)
+		//		if u.NowU[nid] >=0 {
+		//			u.NowU[nid] = - (u.NowU[nid]+1)
+		//		}
 //				u.Public.Down[nid][n/9][n%9]= nc
 			}else{
 				n,err := strconv.Atoi(str[3])
@@ -61,9 +74,10 @@ func DataHandle(data string) []byte {
 				}
 				fmt.Println("nc->",nid,n,nc)
 				if nc  == 100 {
-					u.NowU[nid] = n
+			//		u.NowU[nid] = n
 				}else{
-					u.Public.Down[nid][n/9][n%9]= nc
+					u.SetPublicDown(nid,n,nc)
+					//u.Public.Down[nid][n/9][n%9]= nc
 
 				}
 			}
@@ -72,15 +86,16 @@ func DataHandle(data string) []byte {
 			if err != nil {
 				panic(err)
 			}
-			if u.NowU[nid] < 0 {
-				u.NowU[nid] = (- u.NowU[nid]) -1
-			}
+		//	if u.NowU[nid] < 0 {
+		//		u.NowU[nid] = (- u.NowU[nid]) -1
+		//	}
 	//		if u.LastSee == lsn {
 //	//			fmt.Println("is have",nid,n)
 	//			return []byte{1}
 	//		}
 			fmt.Println("k->",nid,n)
-			u.Public.See[nid][n/9][n%9]++
+//			u.Public.See[nid][n/9][n%9]++
+			u.SetPublicDown(nid,n,1)
 		//	Test[nid][n/9][n%9]++
 			u.LastSee = n
 		}
@@ -127,20 +142,20 @@ func DataHandle(data string) []byte {
 				sends = fmt.Sprintf("%s %d",sends,o)
 			}
 
-			u.NowVal = nowVal
+	//		u.NowVal = nowVal
 		}else if nc == 6 {
 			a := u.GetDiscard(true)
 			u.SetValid(a)
 			sends = fmt.Sprintf("6 %d",a)
-			u.NowVal = nowVal
+			u.SetNowVal(nowVal)
 		}else if nc == 7  {
 			n :=u.SeeOut(u.LastSee,(nowVal - u.NowVal )/u.BaseVal)
 			sends = fmt.Sprintf("%d %d",nid,n)
 		}else if nc == 8 {
 			n :=u.Outs((nowVal - u.NowVal)/u.BaseVal,true)
-			if n >= 0 && n <27  {
-				u.Public.See[u.Uid][n/9][n%9] ++
-			}
+	//		if n >= 0 && n <27  {
+	//			u.Public.See[u.Uid][n/9][n%9] ++
+	//		}
 //			Test[3][n/9][n%9]++
 			sends = fmt.Sprintf("%d %d",nid,n)
 
@@ -153,7 +168,8 @@ func DataHandle(data string) []byte {
 		}
 		fmt.Println("sends:",sends)
 //		u.NowU = 0
-		u.LastForData[1] = sends
+//		u.LastForData[1] = sends
+		u.SetLastForData(1,sends)
 
 		return []byte(sends)
 	}

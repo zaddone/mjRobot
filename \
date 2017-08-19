@@ -16,12 +16,12 @@ type Robot interface{
 	GetLastSee() int
 	Outs(isf int,No30 bool) int
 	OutDiscard(num int) (o []int)
-	GetDiscard() int
-	SeeOuts(v int,key []int,isf int) int
+	GetDiscard(isNeed bool) int
+	SeeOut(v int,isf int) int
 	SetLastForData(n int,s string)
 	GetLastForData() [2]string
 	SetNowVal(n int)
-	SetValid(nid int,n int)
+	SetValid(n int)
 	SetPublicDown(nid int,n int,val int)
 	SetPublicSee(nid int,n int,val int)
 	InitNow(str []string)
@@ -129,45 +129,29 @@ func DataHandle(data string) []byte {
 			panic(err)
 		}
 		fmt.Println(str[4:])
+		u.InitNow(str[4:])
 		var sends string
-		if nc == 7 {
-			var ns []int
-			for _,s := range str[4:] {
-				n,err := strconv.Atoi(s)
-				if err != nil {
-					panic(err)
-				}
-				ns = append(ns,n)
+		if nc == 5 {
+			outs := u.OutDiscard(3)
+			sends = str[1]
+			for _,o := range outs {
+				sends = fmt.Sprintf("%s %d",sends,o)
 			}
-			n := u.SeeOuts(u.GetLastSee(),ns,u.GetFullVal(nowVal))
+		}else if nc == 6 {
+			a := u.GetDiscard(true)
+			u.SetValid(3,a)
+			sends = fmt.Sprintf("6 %d",a)
+			u.SetNowVal(nowVal)
+		}else if nc == 7  {
+			n :=u.SeeOut(u.GetLastSee(),u.GetFullVal(nowVal))
 			sends = fmt.Sprintf("%d %d",nid,n)
-		}else{
-			u.InitNow(str[4:])
-			if nc == 4 {
-				return []byte{1}
-			}
-			if nc == 5 {
-				outs := u.OutDiscard(3)
-				sends = str[1]
-				for _,o := range outs {
-					sends = fmt.Sprintf("%s %d",sends,o)
-				}
-			}else if nc == 6 {
-				a := u.GetDiscard()
-				u.SetValid(3,a)
-				sends = fmt.Sprintf("6 %d",a)
-				u.SetNowVal(nowVal)
-//			}else if nc == 7  {
-//				n :=u.SeeOut(u.GetLastSee(),u.GetFullVal(nowVal))
-//				sends = fmt.Sprintf("%d %d",nid,n)
-			}else if nc == 8 {
-				n :=u.Outs(u.GetFullVal(nowVal),true)
-				sends = fmt.Sprintf("%d %d",nid,n)
+		}else if nc == 8 {
+			n :=u.Outs(u.GetFullVal(nowVal),true)
+			sends = fmt.Sprintf("%d %d",nid,n)
 
-			}else if nc == 9 {
-				n :=u.Outs(u.GetFullVal(nowVal),false)
-				sends = fmt.Sprintf("%d %d",nc,n)
-			}
+		}else if nc == 9 {
+			n :=u.Outs(u.GetFullVal(nowVal),false)
+			sends = fmt.Sprintf("%d %d",nc,n)
 		}
 		fmt.Println("sends:",sends)
 		u.SetLastForData(1,sends)
@@ -216,13 +200,6 @@ func console(){
 }
 
 func main(){
-
-//	var now [3][9]int
-//	tmp := now[1][:]
-//	fmt.Println(now,tmp)
-//	now[1][0] = 9
-//	fmt.Println(now,tmp)
-
 	flag.Parse()
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	AIUser = make(map[string]Robot)
